@@ -1,0 +1,1 @@
+A script to mimic time machine on Mac OS X by using BTRFS snapshots in combination with rsync.
