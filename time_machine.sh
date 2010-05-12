@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # the unique identifier for the BTRFS partition (from /dev/disk/by-uuid)
-BTRFS_UUID=85f6968d-11d7-4b2c-b860-adb9a890df23
+DEVICE_UUID=85f6968d-11d7-4b2c-b860-adb9a890df23
+DEVICE=$(blkid  | grep $DEVICE_UUID | cut -d ":" -f 1)
 MOUNT_POINT=/mnt/btrfs_backups
 SNAPSHOTS_DIR=/mnt/btrfs_backups/snapshots
 DATE=$(date +%Y%m%d-%H%M)
@@ -21,14 +22,13 @@ else
 fi
 DESTINATION=${MOUNT_POINT}/backups/aorth
 
-
 echo "${DATE}: BTRFS time machine version $VERSION running."
 
 # make sure the backup drive is mounted...
-if [ $(mount | grep -c "$MOUNT_POINT") -ne "1" ]
+if [ $(grep -c "$MOUNT_POINT" /proc/mounts) -ne "1" ]
 then
 	echo "${DATE}: Backup device not mounted; attempting..."
-	mount -o rw UUID=$BTRFS_UUID $MOUNT_POINT 2> /dev/null
+	mount -o rw $DEVICE $MOUNT_POINT 2> /dev/null
 	if [ "$?" -ne "0" ]
 	then
 		echo "${DATE}: Failed to mount backup device."
@@ -38,7 +38,7 @@ fi
 
 # make sure the mount point is RW
 echo "${DATE}: Remounting mount point as RW"
-mount -o rw $BTRFS_UUID $MOUNT_POINT
+mount -o remount,rw $DEVICE $MOUNT_POINT
 
 # start the backup
 echo "${DATE}: Starting the backup."
@@ -49,8 +49,9 @@ btrfs subvolume snapshot $MOUNT_POINT /mnt/btrfs_backups/snapshots/aorth_${DATE}
 
 # make sure the mount point is RO
 echo "${DATE}: Remounting mount point as RO"
-mount -o ro $BTRFS_UUID $MOUNT_POINT
+mount -o remount,ro $DEVICE $MOUNT_POINT
 
 echo "${DATE}: Done!"
+echo
 
 exit 0
